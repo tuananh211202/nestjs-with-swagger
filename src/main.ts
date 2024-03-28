@@ -17,9 +17,12 @@ async function bootstrap() {
   const configService = app.get(ConfigService<AllConfigType>);
 
   app.enableShutdownHooks();
-  app.setGlobalPrefix(configService.getOrThrow('app.apiPrefix', { infer: true }), {
-    exclude: ['/'],
-  });
+  app.setGlobalPrefix(
+    configService.getOrThrow('app.apiPrefix', { infer: true }),
+    {
+      exclude: ['/'],
+    },
+  );
   app.enableVersioning({
     type: VersioningType.URI,
   });
@@ -28,8 +31,15 @@ async function bootstrap() {
   app.use(json({ limit: '200mb' }));
   app.use(urlencoded({ extended: true, limit: '200mb' }));
 
-  if(configService.getOrThrow('app.nodeEnv', { infer: true }) === 'development') {
-    const options = new DocumentBuilder().setTitle('API').setDescription('API docs').setVersion('1.0').addBearerAuth().build();
+  if (
+    configService.getOrThrow('app.nodeEnv', { infer: true }) === 'development'
+  ) {
+    const options = new DocumentBuilder()
+      .setTitle('API')
+      .setDescription('API docs')
+      .setVersion('1.0')
+      .addBearerAuth()
+      .build();
     const document = SwaggerModule.createDocument(app, options);
     SwaggerModule.setup('docs', app, document);
     generateApi({
@@ -37,18 +47,20 @@ async function bootstrap() {
       templates: path.resolve(process.cwd(), './api-templates'),
       httpClientType: 'axios',
       unwrapResponseData: true,
-    }).then(({ files }) => {
-      files.forEach(({ fileContent }) => {
-        fs.writeFile('./src/_api.ts', fileContent, (err) => {
-          if (err) console.log(err);
-          else {
-            if (fs.existsSync('../frontend')) {
-              fs.copyFileSync('./src/_api.ts', '../fronend/src/_api.ts');
+    })
+      .then(({ files }) => {
+        files.forEach(({ fileContent }) => {
+          fs.writeFile('./src/_api.ts', fileContent, (err) => {
+            if (err) console.log(err);
+            else {
+              if (fs.existsSync('../frontend')) {
+                fs.copyFileSync('./src/_api.ts', '../frontend/src/_api.ts');
+              }
             }
-          }
-        })
+          });
+        });
       })
-    }).catch(e => console.error(e));
+      .catch((e) => console.error(e));
   }
 
   await app.listen(configService.getOrThrow('app.port', { infer: true }));
